@@ -6,27 +6,11 @@
  */
 
 #include "string.h"
-#include <stdio.h>
 #include "stm32f0xx_hal.h"
 #include "log.h"
 
 UART_HandleTypeDef huart2;
 
-#ifdef __GNUC__
-/* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf set to 'Yes') calls __io_putchar() */
-#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
-#else
-#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-#endif
-
-/* __GNUC__ */
-PUTCHAR_PROTOTYPE
-{
-    /* Place your implementation of fputc here */
-    /* e.g. write a character to the USART */
-    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 100);
-    return ch;
-}
 
 void LogInit()
 {
@@ -44,10 +28,12 @@ void LogInit()
 	{
 		Error_Handler();
 	}
-	printf("Test");
+	  //uint8_t a = 'a';
+	  //HAL_UART_Transmit(&huart2, (uint8_t *)&a, 1, 100);
+	lprint("hello");
 }
 
-void lprint(const char * fmt, ...)
+void lprint(const uint8_t *msg)
 {
-
+	HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), 100);
 }

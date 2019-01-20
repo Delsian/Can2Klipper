@@ -11,7 +11,7 @@
 
 void LogInit(void);
 
-void lprint(const char * fmt, ...);
+void lprint(const uint8_t *msg);
 void Error_Handler(void);
 
 #ifdef DEBUG

@@ -41,6 +41,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "log.h"
+#include "can.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -63,7 +64,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-CAN_HandleTypeDef hcan;
 
 I2C_HandleTypeDef hi2c1;
 
@@ -98,7 +98,7 @@ static void MX_RTC_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	uint8_t pkt[8] = {3,4,5};
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -119,7 +119,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_CAN_Init();
+  CanInit();
   MX_TIM17_Init();
   MX_I2C1_Init();
   MX_RTC_Init();
@@ -132,7 +132,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+	  HAL_Delay(100);
+	  CanTransmit(0x55, 8, pkt);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -178,43 +179,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief CAN Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CAN_Init(void)
-{
-
-  /* USER CODE BEGIN CAN_Init 0 */
-
-  /* USER CODE END CAN_Init 0 */
-
-  /* USER CODE BEGIN CAN_Init 1 */
-
-  /* USER CODE END CAN_Init 1 */
-  hcan.Instance = CAN;
-  hcan.Init.Prescaler = 16;
-  hcan.Init.Mode = CAN_MODE_NORMAL;
-  hcan.Init.SJW = CAN_SJW_1TQ;
-  hcan.Init.BS1 = CAN_BS1_1TQ;
-  hcan.Init.BS2 = CAN_BS2_1TQ;
-  hcan.Init.TTCM = DISABLE;
-  hcan.Init.ABOM = DISABLE;
-  hcan.Init.AWUM = DISABLE;
-  hcan.Init.NART = DISABLE;
-  hcan.Init.RFLM = DISABLE;
-  hcan.Init.TXFP = DISABLE;
-  if (HAL_CAN_Init(&hcan) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN CAN_Init 2 */
-
-  /* USER CODE END CAN_Init 2 */
-
 }
 
 /**
