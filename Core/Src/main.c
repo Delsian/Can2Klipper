@@ -133,7 +133,8 @@ int main(void)
   {
     /* USER CODE END WHILE */
 	  HAL_Delay(100);
-	  CanTransmit(0x55, 8, pkt);
+	  lprint("qw");
+	  CanTransmit(pkt);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

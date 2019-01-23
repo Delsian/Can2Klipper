@@ -10,6 +10,6 @@
 
 
 void CanInit(void);
-void CanTransmit(uint16_t id, uint8_t len, uint8_t *pkt);
+void CanTransmit(uint8_t *pkt);
 
 #endif /* CORE_INC_CAN_H_ */
