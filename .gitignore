@@ -52,3 +52,5 @@ Mkfile.old
 dkms.conf
 /build
 /Default/
+
+/.settings/language.settings.xml
