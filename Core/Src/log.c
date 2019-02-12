@@ -37,3 +37,9 @@ void lprint(const uint8_t *msg)
 {
 	HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), 100);
 }
+
+void lnprint(const uint8_t *msg, size_t len)
+{
+	HAL_UART_Transmit(&huart2, (uint8_t *)msg, len, 100);
+}
+

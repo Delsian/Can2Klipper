@@ -97,8 +97,7 @@ static void MX_RTC_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	uint32_t count = 0;
-	uint8_t pkt[8] = {3,4,5};
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -133,10 +132,7 @@ int main(void)
   {
     /* USER CODE END WHILE */
 	  HAL_Delay(100);
-	  count++;
 	  lprint("q3");
-	  memcpy(&(pkt[3]), &count, 4);
-	  //CanTransmit(pkt);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

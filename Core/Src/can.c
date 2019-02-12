@@ -13,8 +13,12 @@
 CAN_HandleTypeDef hcan;
 static CanTxMsgTypeDef    TxMessage;
 static CanRxMsgTypeDef    RxMessage;
-CAN_FilterConfTypeDef sFilterConfig;
+
+CanCurrentState CurrState;
+static uint16_t MyCanId = 0;
+
 void Error_Handler(void);
+
 
 void CanInit(void)
 {
@@ -38,40 +42,81 @@ void CanInit(void)
 	hcan.pRxMsg = &RxMessage;
 
 	/*##-2- Configure the CAN Filter ###########################################*/
-	 sFilterConfig.FilterNumber = 0;
-	 sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-	 sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-	 sFilterConfig.FilterIdHigh = 0;
-	 sFilterConfig.FilterIdLow = 0;
-	 sFilterConfig.FilterMaskIdHigh = 0x0000;
-	 sFilterConfig.FilterMaskIdLow = 0x0000;
-	 sFilterConfig.FilterFIFOAssignment = CAN_FIFO0;
-	 sFilterConfig.FilterActivation = ENABLE;
-	 //sFilterConfig.BankNumber = 14;
+	CAN_FilterConfTypeDef sFilterConfig;
+	sFilterConfig.FilterNumber = 0;
+	sFilterConfig.FilterMode = CAN_FILTERMODE_IDLIST;
+	sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+	sFilterConfig.FilterIdHigh = PKT_ID_UUID<<5;
+	sFilterConfig.FilterIdLow = 0x0000;
+	sFilterConfig.FilterMaskIdHigh = PKT_ID_SET<<5;
+	sFilterConfig.FilterMaskIdLow = 0x0000;
+	sFilterConfig.FilterFIFOAssignment = CAN_FIFO0;
+	sFilterConfig.FilterActivation = ENABLE;
+	//sFilterConfig.BankNumber = 14;
 
-	 if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK)
-		 /* Filter configuration Error */
-		 Error_Handler();
+	 HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
 
 	 /*##-3- Configure Transmission process #####################################*/
-	 hcan.pTxMsg->StdId = 0x1;
 	 hcan.pTxMsg->ExtId = 0;
 	 hcan.pTxMsg->RTR = CAN_RTR_DATA;
 	 hcan.pTxMsg->IDE = CAN_ID_STD;
-	 hcan.pTxMsg->DLC = 8;
 
 	 //HAL_CAN_Start(&hcan);
 	 HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
 }
 
-void CanTransmit(uint8_t *pkt)
+void CanTransmit(uint32_t id, uint32_t dlc, uint8_t *pkt)
 {
-	memcpy(hcan.pTxMsg->Data, pkt, 8);
+	memcpy(hcan.pTxMsg->Data, pkt, dlc);
+	hcan.pTxMsg->StdId = id;
+	hcan.pTxMsg->DLC = dlc;
 	HAL_CAN_Transmit(&hcan, 1000);
 }
 
-void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* h) {
-	memcpy(hcan.pTxMsg->Data,h->pRxMsg->Data,h->pRxMsg->DLC);
-	HAL_CAN_Transmit(&hcan, 1000);
-	lprint(itoa(h->pRxMsg->StdId));
+static void CanUUIDResp()
+{
+	  CanTransmit(PKT_ID_UUID_RESP, STM32_UUID_LEN, (uint8_t*) STM32_UUID_ADDR); // Last 48 bits of Unique 96-bit value
 }
+
+void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* h) {
+	switch(CurrState) {
+	case eCanStart:
+		if(h->pRxMsg->StdId == PKT_ID_UUID) {
+			// Just inform host about my UUID
+			CanUUIDResp();
+			lprint("U");
+		} else if (h->pRxMsg->StdId == PKT_ID_SET) {
+			// compare my UUID with packet to check if this packet mine
+			lprint("S");
+			if (memcmp(&(h->pRxMsg->Data[2]), (uint8_t*) STM32_UUID_ADDR, STM32_UUID_LEN) == 0) {
+				MyCanId = *((uint16_t*)h->pRxMsg->Data);
+				lnprint((const uint8_t*)&MyCanId, 2);
+				CAN_FilterConfTypeDef sFilterConfig;
+				sFilterConfig.FilterNumber = 0;
+				sFilterConfig.FilterMode = CAN_FILTERMODE_IDLIST;
+				sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+				sFilterConfig.FilterIdHigh = MyCanId<<5;
+				sFilterConfig.FilterIdLow = 0x0000;
+				sFilterConfig.FilterMaskIdHigh = 0xFFFF;
+				sFilterConfig.FilterMaskIdLow = 0x0000;
+				sFilterConfig.FilterFIFOAssignment = CAN_FIFO0;
+				sFilterConfig.FilterActivation = ENABLE;
+				// Disable 'set address' filter and enable only my packets
+				HAL_CAN_ConfigFilter(&hcan, &sFilterConfig);
+				lprint("f");
+				CurrState = eCanWork;
+			}
+		}
+		break;
+	case eCanWork:
+		lprint(">");
+		if(h->pRxMsg->StdId == MyCanId) {
+			memcpy(TxMessage.Data,h->pRxMsg->Data,h->pRxMsg->DLC);
+			hcan.pTxMsg->DLC = h->pRxMsg->DLC;
+			hcan.pTxMsg->StdId = MyCanId;
+			HAL_CAN_Transmit(&hcan, 1000);
+		}
+	}
+	HAL_CAN_Receive_IT(&hcan, CAN_FIFO0);
+}
+
