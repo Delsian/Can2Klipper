@@ -73,9 +73,20 @@ void CanTransmit(uint32_t id, uint32_t dlc, uint8_t *pkt)
 	HAL_CAN_Transmit(&hcan, 1000);
 }
 
+// Convert Unique 96-bit value into 48 bit representation
+static void pack_uuid(uint8_t* u)
+{
+	for(int i=0; i<SHORT_UUID_LEN; i++) {
+		u[i] = *((uint8_t*)(STM32_UUID_ADDR+i)) ^
+				*((uint8_t*)(STM32_UUID_ADDR+i+SHORT_UUID_LEN));
+	}
+}
+
 static void CanUUIDResp()
 {
-	  CanTransmit(PKT_ID_UUID_RESP, STM32_UUID_LEN, (uint8_t*) STM32_UUID_ADDR); // Last 48 bits of Unique 96-bit value
+	uint8_t short_uuid[SHORT_UUID_LEN];
+	pack_uuid(short_uuid);
+	CanTransmit(PKT_ID_UUID_RESP, SHORT_UUID_LEN, short_uuid);
 }
 
 void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* h) {
@@ -88,7 +99,9 @@ void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* h) {
 		} else if (h->pRxMsg->StdId == PKT_ID_SET) {
 			// compare my UUID with packet to check if this packet mine
 			lprint("S");
-			if (memcmp(&(h->pRxMsg->Data[2]), (uint8_t*) STM32_UUID_ADDR, STM32_UUID_LEN) == 0) {
+			uint8_t short_uuid[SHORT_UUID_LEN];
+			pack_uuid(short_uuid);
+			if (memcmp(&(h->pRxMsg->Data[2]), short_uuid, SHORT_UUID_LEN) == 0) {
 				MyCanId = *((uint16_t*)h->pRxMsg->Data);
 				lnprint((const uint8_t*)&MyCanId, 2);
 				CAN_FilterConfTypeDef sFilterConfig;
