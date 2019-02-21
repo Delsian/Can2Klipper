@@ -125,8 +125,9 @@ void HAL_CAN_RxCpltCallback(CAN_HandleTypeDef* h) {
 		lprint(">");
 		if(h->pRxMsg->StdId == MyCanId) {
 			memcpy(TxMessage.Data,h->pRxMsg->Data,h->pRxMsg->DLC);
+			TxMessage.Data[0]++;
 			hcan.pTxMsg->DLC = h->pRxMsg->DLC;
-			hcan.pTxMsg->StdId = MyCanId;
+			hcan.pTxMsg->StdId = MyCanId+1;
 			HAL_CAN_Transmit(&hcan, 1000);
 		}
 	}
